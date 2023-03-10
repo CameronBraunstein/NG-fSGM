@@ -1,1 +1,1 @@
-python main.py --dataset Middlebury --scene Beanbags
+python main.py --algorithm fSGM --dataset Middlebury --scene Beanbags
