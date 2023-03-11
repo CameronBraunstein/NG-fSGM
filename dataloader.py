@@ -20,6 +20,6 @@ class Dataloader:
             self.gt_flow_path = os.path.join('Middlebury/gt-flow',args.scene,'flow10.flo')
 
     def getframes(self):
-        frame_0 = gettorchtensor(self.frame_0_path)
-        frame_1 = gettorchtensor(self.frame_1_path)
+        frame_0 = gettorchtensor(self.frame_0_path)[:,:8,:7]
+        frame_1 = gettorchtensor(self.frame_1_path)[:,:8,:7]
         return frame_0,frame_1
