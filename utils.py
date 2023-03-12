@@ -6,11 +6,12 @@ from PIL import Image
 
 # Based off of extremely helpful stack overflow post:
 # https://stackoverflow.com/questions/38265364/census-transform-in-python-opencv
-def census_transform(img):
+def census_transform(img, img_padding=1):
     transform = transforms.Grayscale()
     img = transform(img)
     transform = transforms.Pad(1,padding_mode='symmetric')
-    img = transform(img)
+    for i in range(img_padding):
+        img = transform(img)
     img_size = img.size()
     height,width = img_size[1],img_size[2]
     census = torch.zeros(size=(height-2, width-2),dtype=torch.uint8)
@@ -24,39 +25,92 @@ def hamming_distance(a,b):
     return bin(a ^ b).count("1")
 
 
+
+class DirectionalRegularizerCache:
+    def __init__(self,max_height,max_width,displacement_window,is_forward):
+        self.is_forward = is_forward
+        self.max_height = max_height
+        self.max_width = max_width
+        self.displacement_window = displacement_window
+        self.regularization_penalties_dict = {}
+    def format_key(self,point,direction):
+        return ','.join(tuple(map(str,point)))+','+(','.join(tuple(map(str,direction))))
+    
+    def add_regularization_penalty(self,point,direction,penalties):
+        key = self.format_key(point,direction)
+        self.regularization_penalties_dict[key] = penalties
+    
+    def get_regularization_penalty(self,point,direction):
+        key = self.format_key(point,direction)
+        if key in self.regularization_penalties_dict:
+            return self.regularization_penalties_dict[key]
+        else:
+            print('Missing key', key)
+            return None
+        
+    def clear_keys_if_last_use(self,point):
+        if self.is_forward:
+            for (u,v) in [(1,0),(1,1),(0,1),(1,1)]:
+                key = self.format_key((point[0]-u,point[1]-v),(u,v))
+                if key in self.regularization_penalties_dict:
+                    del self.regularization_penalties_dict[key]
+        else:
+            raise Exception("Not yet implemented")
+
+
+
 class CostTensorCoordinates:
     def __init__(self,census_window,max_height,max_width):
-        if census_window%2 == 0:
-            raise Exception("Census window must be an odd number")
         self.window_offset = census_window//2
         self.max_height = max_height
         self.max_width = max_width
-    def get_matching_frame_coordinate(self, frame_x,frame_y, window_x,window_y):
-        shifted = False
+    def get_matching_frame_coordinates(self, frame_x,frame_y, window_x,window_y):
         if frame_x-self.window_offset<0:
             x = window_x
-            shifted = True
         elif frame_x + self.window_offset >= self.max_height:
             x = self.max_height - (self.window_offset*2 +1) + window_x
-            shifted = True
         else:
             x = frame_x - self.window_offset + window_x 
         
         if frame_y-self.window_offset<0:
             y = window_y
-            shifted = True
         elif frame_y + self.window_offset >= self.max_width:
-            shifted = True
             y = self.max_width - (self.window_offset*2 +1) + window_y
         else:
             y = frame_y - self.window_offset + window_y
-
-        if shifted:
-            print(frame_x,frame_y, window_x,window_y)
-            print(x,y)
-            print('corrd shifts')
-
         return (x,y)
+
+
+def calculate_Potts_directional_regularizers(directional_penalties,P1,P2):
+    width,height = directional_penalties.size()
+    directional_regularizers = torch.full((width,height),float('inf'))
+    global_min = float('inf')
+    for i in range(width):
+        for j in range(height):
+            if directional_penalties[i,j]<global_min:
+                global_min = directional_penalties[i,j]
+            for k in range(width):
+                for l in range(height):
+                    squared_dist = (i-k)**2 + (j-l)**2
+                    if squared_dist == 0:
+                        if directional_penalties[i,j] < directional_regularizers[k,l]:
+                            directional_regularizers[k,l] = directional_penalties[i,j]
+                    elif squared_dist < 2:
+                        if directional_penalties[i,j]+ P1 < directional_regularizers[k,l]:
+                            directional_regularizers[k,l] = directional_penalties[i,j] + P1
+                    else:
+                        if directional_penalties[i,j]+ P2 < directional_regularizers[k,l]:
+                            directional_regularizers[k,l] = directional_penalties[i,j] + P2
+    directional_regularizers = torch.sub(directional_regularizers,global_min)
+    print(directional_regularizers)
+    return directional_regularizers
+
+
+                    
+
+
+
+    
 
 
 

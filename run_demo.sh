@@ -1,1 +1,0 @@
-python main.py --algorithm fSGM --dataset Middlebury --scene Beanbags --census_window 3
