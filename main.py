@@ -15,8 +15,11 @@ parser.add_argument('--scene',choices=['Beanbags','Dimetrodon'],
 parser.add_argument('--algorithm',choices=['NG-fSGM','fSGM'], default='NG-fSGM',
                     help='Choice of optical flow algorithm')
 
+parser.add_argument('--penalty_model',choices=['Potts'], default='Potts',
+                    help='Choice of penalty function')
+
 #See IV. Results, paragraph 2 for defaults which give optimal performance
-parser.add_argument('--census_window',default=11, type=int,
+parser.add_argument('--displacement_window',default=11, type=int,
                     help='dimension of the window with in which we search for optical flow')
 
 parser.add_argument('--path_directions',default=8, type=int,
