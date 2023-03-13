@@ -25,6 +25,25 @@ def hamming_distance(a,b):
     return bin(a ^ b).count("1")
 
 
+#In the future, expand to subclasses with 
+#various data costs Mutual information, etc.,
+#For now, we exclusively use the census
+class DataCostCalculator:
+    def __init__(self,frame_0,frame_1,displacement_window):
+        self.displacement_window = displacement_window
+        self.census_0 = census_transform(frame_0)
+        self.census_1 = census_transform(frame_1,img_padding=get_offset_from_window_size(self.displacement_window)+1)
+    def get_data_costs(self,i,j):
+        #Calculate displacement costs (C(p,o) in Zhang et at.)
+        data_costs = torch.zeros(self.displacement_window,self.displacement_window)
+        base_census = self.census_0[i,j]
+        for k in range(self.displacement_window):
+            for l in range(self.displacement_window):
+                data_costs[k,l] = hamming_distance(base_census,self.census_1[i+k,j+l])
+        return data_costs
+
+
+
 
 class DirectionalRegularizerCache:
     def __init__(self):
@@ -51,28 +70,6 @@ class DirectionalRegularizerCache:
                 del self.regularization_penalties_dict[key]
 
 
-class CostTensorCoordinates:
-    def __init__(self,census_window,max_height,max_width):
-        self.window_offset = census_window//2
-        self.max_height = max_height
-        self.max_width = max_width
-    def get_matching_frame_coordinates(self, frame_x,frame_y, window_x,window_y):
-        if frame_x-self.window_offset<0:
-            x = window_x
-        elif frame_x + self.window_offset >= self.max_height:
-            x = self.max_height - (self.window_offset*2 +1) + window_x
-        else:
-            x = frame_x - self.window_offset + window_x 
-        
-        if frame_y-self.window_offset<0:
-            y = window_y
-        elif frame_y + self.window_offset >= self.max_width:
-            y = self.max_width - (self.window_offset*2 +1) + window_y
-        else:
-            y = frame_y - self.window_offset + window_y
-        return (x,y)
-
-
 def calculate_Potts_directional_regularizers(directional_penalties,P1,P2):
     width,height = directional_penalties.size()
     directional_regularizers = torch.full((width,height),float('inf'))
@@ -94,18 +91,39 @@ def calculate_Potts_directional_regularizers(directional_penalties,P1,P2):
                         if directional_penalties[i,j]+ P2 < directional_regularizers[k,l]:
                             directional_regularizers[k,l] = directional_penalties[i,j] + P2
     directional_regularizers = torch.sub(directional_regularizers,global_min)
-    print(directional_regularizers)
     return directional_regularizers
 
 
-                    
+             
 
 
 
     
-
+def get_offset_from_window_size(window_size):
+    return window_size //2
 
 
 def view_torch_tensor(img):
     sample = transforms.ToPILImage()(img)
     sample.show()
+
+class CostTensorCoordinates:
+    def __init__(self,census_window,max_height,max_width):
+        self.window_offset = census_window//2
+        self.max_height = max_height
+        self.max_width = max_width
+    def get_matching_frame_coordinates(self, frame_x,frame_y, window_x,window_y):
+        if frame_x-self.window_offset<0:
+            x = window_x
+        elif frame_x + self.window_offset >= self.max_height:
+            x = self.max_height - (self.window_offset*2 +1) + window_x
+        else:
+            x = frame_x - self.window_offset + window_x 
+        
+        if frame_y-self.window_offset<0:
+            y = window_y
+        elif frame_y + self.window_offset >= self.max_width:
+            y = self.max_width - (self.window_offset*2 +1) + window_y
+        else:
+            y = frame_y - self.window_offset + window_y
+        return (x,y)

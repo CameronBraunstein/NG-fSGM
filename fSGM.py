@@ -1,4 +1,4 @@
-from utils import census_transform, hamming_distance, CostTensorCoordinates, DirectionalRegularizerCache, calculate_Potts_directional_regularizers
+from utils import census_transform, hamming_distance, DataCostCalculator, DirectionalRegularizerCache, calculate_Potts_directional_regularizers, get_offset_from_window_size
 import torch
 
 #Based on description in Hierarchical Scan-Line Dynamic Programming for 
@@ -6,36 +6,26 @@ import torch
 
 class fSGM:
     def __init__(self,args):
-        self.census_window = args.census_window
+        self.displacement_window = args.displacement_window
         self.path_directions = args.path_directions
         self.P1 = args.P1
         self.P2 = args.P2
         self.penalty_model = args.penalty_model
 
     def compute_flow(self,frame_0,frame_1):
-        #  'It first computes pixel-wise matching costs of corresponding pixels in two 
-        #  frames for all disparities in the search space. '
+        height,width = frame_0.size()[1:3]        
+
+        data_cost_calc = DataCostCalculator(frame_0,frame_1,self.displacement_window)
 
 
-        #May compute this dynamically to save memory
-        #self.compute_displacement_costs(frame_0,frame_1)
-        height,width = frame_0.size()[1:3]
-
-        
-        window_offset = self.census_window//2
-
-        census_0 = census_transform(frame_0)
-        census_1 = census_transform(frame_1,img_padding=window_offset+1)
+        self.total_flow_costs = torch.zeros(height,width,self.displacement_window,self.displacement_window)
         #Forward pass
-        #directional_penalties = DirectionalPenalties(self.penalty_model,census_0.size()[0]+1, self.census_window)
-        print(census_0.size())
-
-        self.total_flow_costs = torch.zeros(height,width,self.census_window,self.census_window)
-        self.forward_or_backward_pass(height,width,census_0,census_1,is_forward=True)
-        self.forward_or_backward_pass(height,width,census_0,census_1,is_forward=False)
+        self.forward_or_backward_pass(height,width,data_cost_calc,is_forward=True)
+        #Backward pass
+        self.forward_or_backward_pass(height,width,data_cost_calc,is_forward=False)
 
         self.flow = torch.zeros(height,width,2)
-        self.get_flows_from_total_costs(height,width,window_offset)
+        self.get_flows_from_total_costs(height,width)
         print(self.flow)
 
 
@@ -70,19 +60,19 @@ class fSGM:
         #         regularizer_cache.clear_keys_if_last_use((i,j))
 
 
-        #TODO: backward pass
 
         return self.flow
     
-    def get_flows_from_total_costs(self,height,width, window_offset):
+    def get_flows_from_total_costs(self,height,width):
+        window_offset = get_offset_from_window_size(self.displacement_window)
         for i in range(height):
             for j in range(width):
                 argmin = torch.argmin(self.total_flow_costs[i,j,:,:])
-                self.flow[i,j,0] = (argmin // self.census_window) -window_offset
-                self.flow[i,j,1] = (argmin % self.census_window) -window_offset
+                self.flow[i,j,0] = (argmin // self.displacement_window) -window_offset
+                self.flow[i,j,1] = (argmin % self.displacement_window) -window_offset
 
     
-    def forward_or_backward_pass(self,height,width,census_0,census_1,is_forward):
+    def forward_or_backward_pass(self,height,width,data_cost_calc,is_forward):
         regularizer_cache = DirectionalRegularizerCache()
         #Calibrate for the forward or backward pass
         if is_forward:
@@ -95,20 +85,14 @@ class fSGM:
             direction_vectors = [(-1,0),(-1,-1),(0,-1),(-1,1)]
         for i in height_range:
             for j in width_range:
-                base_census = census_0[i,j]
-
-                #Calculate displacement costs (C(p,o) in Zhang et at.)
-                displacement_costs = torch.zeros(self.census_window,self.census_window)
-                for k in range(self.census_window):
-                    for l in range(self.census_window):
-                        displacement_costs[k,l] = hamming_distance(base_census,census_1[i+k,j+l])
+                data_costs =data_cost_calc.get_data_costs(i,j)
 
                 for (u,v) in direction_vectors:
                     directional_regularizers = regularizer_cache.get_regularization_penalty((i-u,j-v),(u,v))
                     if directional_regularizers is not None:
-                        directional_penalties = torch.add(displacement_costs,directional_regularizers)
+                        directional_penalties = torch.add(data_costs,directional_regularizers)
                     else:
-                        directional_penalties = displacement_costs
+                        directional_penalties = data_costs
 
                     #Update final costs
                     self.total_flow_costs[i,j,:,:] = torch.add(self.total_flow_costs[i,j,:,:],directional_penalties)
@@ -123,19 +107,3 @@ class fSGM:
                 
                 regularizer_cache.clear_keys_if_last_use((i,j),direction_vectors)
         return
-
-
-    def compute_displacement_costs(self,frame_0,frame_1):
-        #computed following section 4.1 of Hermann & Klette
-        census_0 = census_transform(frame_0)
-        census_1 = census_transform(frame_1)
-        height,width =census_0.size()
-        self.displacement_costs = torch.zeros(height,width,self.census_window,self.census_window)
-        coordinate_helper = CostTensorCoordinates(self.census_window,height,width)
-        for i in range(height):
-            for j in range(width):
-                for k in range(self.census_window):
-                    for l in range(self.census_window):
-                        x,y = coordinate_helper.get_matching_frame_coordinates(i,j,k,l)
-                        self.displacement_costs[i,j,k,l] = hamming_distance(census_0[i,j],census_1[x,y])
-        print(self.displacement_costs)
