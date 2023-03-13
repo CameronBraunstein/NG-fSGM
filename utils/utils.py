@@ -60,7 +60,6 @@ class DirectionalRegularizerCache:
         if key in self.regularization_penalties_dict:
             return self.regularization_penalties_dict[key]
         else:
-            print('Missing key', key)
             return None
         
     def clear_keys_if_last_use(self,point,direction_vectors):

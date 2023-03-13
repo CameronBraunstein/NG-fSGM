@@ -1,2 +1,4 @@
 __pycache__/
 Middlebury/
+*.pth
+computed_flow_scenes
