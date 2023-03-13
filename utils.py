@@ -27,11 +27,7 @@ def hamming_distance(a,b):
 
 
 class DirectionalRegularizerCache:
-    def __init__(self,max_height,max_width,displacement_window,is_forward):
-        self.is_forward = is_forward
-        self.max_height = max_height
-        self.max_width = max_width
-        self.displacement_window = displacement_window
+    def __init__(self):
         self.regularization_penalties_dict = {}
     def format_key(self,point,direction):
         return ','.join(tuple(map(str,point)))+','+(','.join(tuple(map(str,direction))))
@@ -48,15 +44,11 @@ class DirectionalRegularizerCache:
             print('Missing key', key)
             return None
         
-    def clear_keys_if_last_use(self,point):
-        if self.is_forward:
-            for (u,v) in [(1,0),(1,1),(0,1),(1,1)]:
-                key = self.format_key((point[0]-u,point[1]-v),(u,v))
-                if key in self.regularization_penalties_dict:
-                    del self.regularization_penalties_dict[key]
-        else:
-            raise Exception("Not yet implemented")
-
+    def clear_keys_if_last_use(self,point,direction_vectors):
+        for (u,v) in direction_vectors:
+            key = self.format_key((point[0]-u,point[1]-v),(u,v))
+            if key in self.regularization_penalties_dict:
+                del self.regularization_penalties_dict[key]
 
 
 class CostTensorCoordinates:
