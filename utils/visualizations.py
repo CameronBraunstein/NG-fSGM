@@ -1,4 +1,5 @@
 from itypes import Dataset
+import numpy as np
 
 
 def visualize_flow(args,dataloader,flow_prediction):
@@ -13,12 +14,9 @@ def visualize_flow(args,dataloader,flow_prediction):
         row.add_cell("flow", var= "gt_flow")
     with ds.seq.group(output_name, label=args.scene) as group:
         with group.item("item_{}".format(args.scene), label="Item {}".format(args.scene)) as item:
-            #item["im0"].set_ref(imfile0, rel_to="cwd") 
-            #item["im1"].set_ref(imfile1, rel_to="cwd")
             data_0,data_1 = dataloader.get_frames()
-            print(data_0.size())
-            item["im0"].set_data(data_0, dims="chw") 
-            item["im1"].set_data(data_1, dims="chw")
+            item["im0"].set_data(np.asarray(data_0), dims="hwc") 
+            item["im1"].set_data(np.asarray(data_1), dims="hwc")
             item["predicted_flow"].set_data(flow_prediction, dims="hwc")
             item["gt_flow"].set_ref(gt_flow_file, rel_to="cwd")
     return iviz_file

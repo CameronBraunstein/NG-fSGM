@@ -1,5 +1,5 @@
 from utils.utils import DataCostCalculator, DirectionalRegularizerCache, calculate_Potts_directional_regularizers, get_offset_from_window_size
-import torch
+import numpy as np
 
 #Based on description in Hierarchical Scan-Line Dynamic Programming for 
 # Optical Flow Using Semi-Global Matching, Simon Hermann & Reinhard Klette
@@ -13,11 +13,12 @@ class fSGM:
         self.penalty_model = args.penalty_model
 
     def compute_flow(self,frame_0,frame_1):
-        height,width = frame_0.size()[1:3]        
+        #height,width,= frame_0.size
+        width, height = frame_0.size       
 
         data_cost_calc = DataCostCalculator(frame_0,frame_1,self.displacement_window)
         
-        self.total_flow_costs = torch.zeros(height,width,self.displacement_window,self.displacement_window)
+        self.total_flow_costs = np.zeros((height,width,self.displacement_window,self.displacement_window))
 
         #Forward pass
         print('Beginning Forward Pass')
@@ -26,7 +27,7 @@ class fSGM:
         print('Beginning Backward Pass')
         self.forward_or_backward_pass(height,width,data_cost_calc,is_forward=False)
 
-        self.flow = torch.zeros(height,width,2)
+        self.flow = np.zeros((height,width,2))
         self.get_flows_from_total_costs(height,width)
 
         return self.flow
@@ -35,7 +36,7 @@ class fSGM:
         window_offset = get_offset_from_window_size(self.displacement_window)
         for i in range(height):
             for j in range(width):
-                argmin = torch.argmin(self.total_flow_costs[i,j,:,:])
+                argmin = np.argmin(self.total_flow_costs[i,j,:,:])
                 #self.flow[i,j,0] = (argmin // self.displacement_window) -window_offset
                 #self.flow[i,j,1] = (argmin % self.displacement_window) -window_offset
                 self.flow[i,j,0] = (argmin % self.displacement_window) -window_offset
@@ -54,18 +55,19 @@ class fSGM:
             width_range = range(width-1,  -1, -1)
             direction_vectors = [(-1,0),(-1,-1),(0,-1),(-1,1)]
         for i in height_range:
+            if i % 10 == 0:
+                print('On row ',i)
             for j in width_range:
-                print('On , row col ',i, ' ', j)
                 data_costs =data_cost_calc.get_data_costs(i,j)
                 for (u,v) in direction_vectors:
                     directional_regularizers = regularizer_cache.get_regularization_penalty((i-u,j-v),(u,v))
                     if directional_regularizers is not None:
-                        directional_penalties = torch.add(data_costs,directional_regularizers)
+                        directional_penalties = np.add(data_costs,directional_regularizers)
                     else:
                         directional_penalties = data_costs
 
                     #Update final costs
-                    self.total_flow_costs[i,j,:,:] = torch.add(self.total_flow_costs[i,j,:,:],directional_penalties)
+                    self.total_flow_costs[i,j,:,:] = np.add(self.total_flow_costs[i,j,:,:],directional_penalties)
 
                     #Compute regularization penalties 
                     if self.penalty_model == 'Potts':
