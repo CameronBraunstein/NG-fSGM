@@ -38,6 +38,7 @@ if __name__ == '__main__':
             #item["im1"].set_ref(imfile1, rel_to="cwd")
             item["im0"].set_ref('Middlebury/frames/{}/frame10.png'.format(scene_name), rel_to="cwd") 
             item["im1"].set_ref('Middlebury/frames/{}/frame11.png'.format(scene_name), rel_to="cwd")
-            item["Flow"].set_ref('Middlebury/gt-flow/{}/flow10.flo'.format(scene_name), rel_to="cwd")
+            #item["Flow"].set_ref('Middlebury/gt-flow/{}/flow10.flo'.format(scene_name), rel_to="cwd")
+            item["Flow"].set_ref('RubberWhale.flo', rel_to="cwd")
     print('Run:')
     print('iviz',iviz_file)
