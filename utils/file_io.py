@@ -29,7 +29,6 @@ def load_flow_file(file_name):
         else:
             width = np.fromfile(f, np.int32, count=1)
             height = np.fromfile(f, np.int32, count=1)
-            # print 'Reading %d x %d flo file\n' % (w, h)
             data = np.fromfile(f, np.float32, count=2*int(width)*int(height))
             data_resize = np.resize(data, (int(height), int(width), 2))
             return data_resize
@@ -62,6 +61,17 @@ def get_as_numpy_tensor(path_name):
         np_array = np.array(im_frame)
         print(np_array.shape)
         return np_array
+    if extension == '.flo':
+        with open(path_name,'rb') as f:
+            magic = np.fromfile(f, np.float32, count=1)
+            if 202021.25 != magic:
+                raise Exception('Magic number incorrect. Invalid .flo file')
+            else:
+                width = np.fromfile(f, np.int32, count=1)
+                height = np.fromfile(f, np.int32, count=1)
+                data = np.fromfile(f, np.float32, count=2*int(width)*int(height))
+                data_resize = np.resize(data, (int(height), int(width), 2))
+                return data_resize
 
 def get_as_PIL_image(path_name):
     _ , extension =  os.path.splitext(path_name)

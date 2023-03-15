@@ -1,6 +1,9 @@
 __pycache__/
 Middlebury/
+flow_comparisons/
+run_cluster.sh
 *.pth
 *.flo
 *.npy
+*.pyc
 computed_flow_scenes
