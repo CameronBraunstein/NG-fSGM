@@ -56,6 +56,10 @@ def load_cost_tensor(path_name):
     
 def get_as_numpy_tensor(path_name):
     _ , extension =  os.path.splitext(path_name)
+    if extension == '.npy':
+        with open(path_name, 'rb') as f:
+            cost_tensor = np.load(f)
+            return cost_tensor
     if extension == '.png':
         im_frame = Image.open(path_name)
         np_array = np.array(im_frame)
