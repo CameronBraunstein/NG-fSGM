@@ -45,14 +45,6 @@ def load_cost_tensor(path_name):
     with open(path_name, 'rb') as f:
         cost_tensor = np.load(f)
         return cost_tensor
-
-
-# def get_torch_tensor(path_name):
-#     _ , extension =  os.path.splitext(path_name)
-#     if extension == '.png':
-#         img = Image.open(path_name)
-#         convert_tensor = transforms.ToTensor()
-#         return convert_tensor(img)
     
 def get_as_numpy_tensor(path_name):
     _ , extension =  os.path.splitext(path_name)

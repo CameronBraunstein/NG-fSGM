@@ -5,6 +5,8 @@ import numpy as np
 import os
 from multiprocessing import Pool
 
+#TODO: Move all logic into appropriately named files
+
 
 # Based off of extremely helpful stack overflow post:
 # https://stackoverflow.com/questions/38265364/census-transform-in-python-opencv
@@ -46,7 +48,7 @@ class DataCostCalculator:
         return data_costs
     def calculate_parallel(self):
         partitions = os.cpu_count()-2
-        p = Pool(partitions)
+        
         max_height,max_width = self.census_0.shape
 
         #bases = [self.census_0[i*(max_height//partitions):min((i+1)*(max_height//partitions),max_height),:] for i in range(partitions)]
@@ -58,6 +60,7 @@ class DataCostCalculator:
         min_widths = [0 for i in range(partitions)]
         max_widths = [max_width for i in range(partitions)]
 
+        p = Pool(partitions)
         cost_chunks = p.starmap(data_costs_in_range, zip(bases,matches,displacement_windows,min_heights,max_heights,min_widths,max_widths))
         self.data_costs = np.zeros((max_height,max_width,self.displacement_window,self.displacement_window))
         for costs,coords in cost_chunks:
