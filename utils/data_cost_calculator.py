@@ -43,18 +43,9 @@ class DataCosts:
         matches = [self.census_1 for i in range(partitions)]
         displacement_windows = [self.displacement_window for i in range(partitions)]
         min_heights = [index[0] for index in np.array_split(range(max_height), partitions)]
-        max_heights = [index[-1] for index in np.array_split(range(max_height), partitions)]
+        max_heights = [index[-1]+1 for index in np.array_split(range(max_height), partitions)]
         min_widths = [0 for i in range(partitions)]
         max_widths = [max_width for i in range(partitions)]
-
-        print(min_heights)
-        print(max_height)
-        print(max_heights)
-
-
-
-
-
 
         p = Pool(partitions)
         cost_chunks = p.starmap(data_costs_in_range, zip(bases,matches,displacement_windows,min_heights,max_heights,min_widths,max_widths))
