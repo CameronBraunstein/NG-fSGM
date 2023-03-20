@@ -37,8 +37,6 @@ class fSGM:
         for i in range(height):
             for j in range(width):
                 argmin = np.argmin(self.total_flow_costs[i,j,:,:])
-                #self.flow[i,j,0] = (argmin // self.displacement_window) -window_offset
-                #self.flow[i,j,1] = (argmin % self.displacement_window) -window_offset
                 self.flow[i,j,0] = (argmin % self.displacement_window) -window_offset
                 self.flow[i,j,1] = (argmin // self.displacement_window) -window_offset
 
