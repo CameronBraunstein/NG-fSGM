@@ -1,6 +1,11 @@
 from itypes import Dataset
 import numpy as np
+import torchvision.transforms as transforms
 
+
+def view_torch_tensor(img):
+    sample = transforms.ToPILImage()(img)
+    sample.show()
 
 def visualize_flow(args,dataloader,flow_prediction):
     imfile0,imfile1, gt_flow_file = dataloader.get_paths()
