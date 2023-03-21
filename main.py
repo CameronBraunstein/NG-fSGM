@@ -1,6 +1,5 @@
 import argparse
 from dataloader import Dataloader
-from NG_fSGM import NG_fSGM
 from fSGM import fSGM
 from utils.visualizations import visualize_flow
 from utils.file_io import save_cost_tensor,save_flow_file
@@ -55,10 +54,10 @@ def main():
     args = parser.parse_args()
     dataloader = Dataloader(args)
     frame_0,frame_1 =dataloader.get_frames()
-    if (args.algorithm == 'NG-fSGM'):
-        predictor = NG_fSGM(args)
-    elif (args.algorithm == 'fSGM'):
+    if (args.algorithm == 'fSGM'):
         predictor = fSGM(args)
+    else:
+        raise Exception('No other algorithm currently supported')
     
     start_time = timeit.default_timer()
     flow_prediction = predictor.compute_flow(frame_0,frame_1)
